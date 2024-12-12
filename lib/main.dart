@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:okhi_flutter/models/okhi_usage_type.dart';
 import 'package:okhi_flutter/okhi_flutter.dart';
+import './db.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,6 +16,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _launch = false;
+  List<UsageType> _usageTypes = [UsageType.addressBook];
+  String? _locationId;
 
   @override
   void initState() {
@@ -47,27 +50,50 @@ class _MyAppState extends State<MyApp> {
   }
 
   _renderBody() {
-    if (!_launch) {
-      return Center(
-        child: ElevatedButton(
-          onPressed: () {
-            setState(() {
-              _launch = true;
-            });
-          },
-          child: const Text('Verify an address'),
+    if (_launch) {
+      return OkHiLocationManager(
+        user: _createOkHiUser(),
+        onCloseRequest: _handleOnClose,
+        onError: _handleOnError,
+        onSucess: _handleOnSuccess,
+        configuration: OkHiLocationManagerConfiguration(
+          locationId: _locationId,
+          usageTypes: _usageTypes,
         ),
       );
     }
-    return OkHiLocationManager(
-      user: _createOkHiUser(),
-      onCloseRequest: _handleOnClose,
-      onError: _handleOnError,
-      onSucess: _handleOnSuccess,
-      configuration: OkHiLocationManagerConfiguration(
-        usageTypes: [UsageType.addressBook],
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            onPressed: _handleCreateAnAddressPress,
+            child: const Text('Create an address'),
+          ),
+          ElevatedButton(
+            onPressed: _handleVerifySavedAddressPress,
+            child: const Text('Verify saved address'),
+          ),
+        ],
       ),
     );
+  }
+
+  _handleVerifySavedAddressPress() {
+    final response = DB.fetchAddress();
+    if (response != null) {
+      _locationId = response.location.id;
+      _usageTypes = [UsageType.digitalVerification];
+      setState(() {
+        _launch = true;
+      });
+    }
+  }
+
+  _handleCreateAnAddressPress() {
+    setState(() {
+      _launch = true;
+    });
   }
 
   OkHiUser _createOkHiUser() {
@@ -85,7 +111,8 @@ class _MyAppState extends State<MyApp> {
       _launch = false;
     });
     final String locationId = await response.startVerification(null);
-    print("started verification for $locationId");
+    print("started verification for: $locationId");
+    DB.saveAddress(response);
   }
 
   _handleOnError(OkHiException exception) {
