@@ -65,10 +65,7 @@ class _MyAppState extends State<MyApp> {
       onError: _handleOnError,
       onSucess: _handleOnSuccess,
       configuration: OkHiLocationManagerConfiguration(
-        usageTypes: [
-          UsageType.digitalVerification,
-          UsageType.physicalVerification
-        ],
+        usageTypes: [UsageType.addressBook],
       ),
     );
   }
